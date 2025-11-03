@@ -1,3 +1,4 @@
+// File: src/lib/algorand-utils.ts
 import algosdk from "algosdk"
 
 /**
@@ -46,19 +47,15 @@ export async function checkAssetHolding(
  return false;
 }
 
-// --- Add this function to your existing src/lib/algorand-utils.ts file ---
-
+// --- O7: Removed 1000ms delay in this function ---
 /**
  * Mints and sends a unique Loyalty Badge NFT to the attendee.
  * NOTE: This is a simulated/placeholder function for the demo.
  */
 export async function mintAndSendLoyaltyBadgeNFT(attendeeAddress: string, hostAddress: string): Promise<number | null> {
     console.log(`[DEMO] Simulating minting of Loyalty Badge for ${attendeeAddress} by host ${hostAddress}...`);
-    // SIMULATED MINTING LOGIC (Replace with real Algorand code)
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network latency
+    // SIMULATED MINTING LOGIC (Removed the artificial delay)
     const simulatedAssetId = Math.floor(Math.random() * 90000000) + 10000000;
     console.log(`[DEMO] Loyalty Badge Minted. Asset ID: ${simulatedAssetId}`);
     return simulatedAssetId;
 }
-
-// --------------------------------------------------------------------------

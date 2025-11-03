@@ -1,3 +1,4 @@
+// File: src/lib/utils.ts
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -34,15 +35,21 @@ export function isEmpty(value: any): boolean {
   return false
 }
 
+// --- O1: Debounce Utility ---
 export function debounce(func: Function, wait: number) {
-  let timeout: NodeJS.Timeout
+  let timeout: NodeJS.Timeout | null; // Use NodeJS.Timeout for better typing
+
   return function executedFunction(...args: any[]) {
+    // @ts-ignore - This context binding is necessary for debounce to work with classes
+    const context = this; 
+    
     const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
+      timeout = null;
+      func.apply(context, args);
+    };
+    
+    clearTimeout(timeout as NodeJS.Timeout); // Cast to NodeJS.Timeout for safety
+    timeout = setTimeout(later, wait);
   }
 }
 
@@ -74,4 +81,11 @@ export function deepClone(obj: any): any {
     }
     return clonedObj
   }
+}
+
+// --- O9: Image Optimization Utility ---
+export function getOptimizedImageUrl(ipfsUrl: string): string {
+    if (!ipfsUrl) return "/placeholder.svg";
+    // Replace ipfs:// with a public gateway URL for general display
+    return ipfsUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
 }

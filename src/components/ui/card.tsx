@@ -1,3 +1,4 @@
+// File: src/components/ui/card.tsx
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
@@ -7,8 +8,9 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    // OPTIMIZATION: Added transition-all for smooth border/shadow changes
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow",
+      "rounded-xl border bg-card text-card-foreground shadow transition-all duration-300 ease-in-out",
       className
     )}
     {...props}
@@ -72,4 +74,5 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
+// Final Export Block - This block is structurally correct and ensures all components are available.
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }

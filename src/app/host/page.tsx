@@ -6,13 +6,14 @@ import { useWallet } from "@txnlab/use-wallet-react"
 import { createClient } from "@supabase/supabase-js"
 import { format } from "date-fns"
 import Link from "next/link"
-import { Calendar, MapPin, Users, Ticket, Settings, ArrowRight } from "lucide-react"
+import { Calendar, MapPin, Users, Ticket, Settings, ArrowRight, Loader2 } from "lucide-react" 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton" 
-import { createMockClient } from "@/lib/supabase-mock"; // NEW IMPORT
+import { createMockClient } from "@/lib/supabase-mock"; 
+import { toast } from "react-toastify"; 
 
 // --- START: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
 const FAKE_SUPABASE_URL = "http://localhost:54321";
@@ -21,14 +22,18 @@ const isDemoMode = process.env.NEXT_PUBLIC_SUPABASE_URL === FAKE_SUPABASE_URL;
 let supabase: any;
 
 if (isDemoMode) {
-    // @ts-ignore - Supabase types are complex, ignore mismatch for mock
+    // @ts-ignore
     supabase = createMockClient();
 } else {
-    // Use the real client if keys are likely real
     supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 }
 // --- END: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
 
+
+// --- DEMO MOCK ADDRESS: Use this if no wallet is connected to prevent locking the page ---
+const DEMO_HOST_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"; 
+
+// --- FIX: LoadingSkeleton DEFINITION MOVED HERE (before HostPage) ---
 function LoadingSkeleton() {
   return (
     <div className="space-y-8">
@@ -113,35 +118,54 @@ function LoadingSkeleton() {
     </div>
   )
 }
+// --- END LoadingSkeleton DEFINITION ---
 
-// --- DEMO MOCK ADDRESS: Use this if no wallet is connected to prevent locking the page ---
-const DEMO_HOST_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"; 
-// Note: This is the Algorand Zero Address, which is valid but should only be used for read-only mocks.
 
 export default function HostPage() {
   const { activeAddress } = useWallet()
+  
+  // Initialize state to empty/loading
   const [events, setEvents] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
   
-  // Use the activeAddress or the DEMO_HOST_ADDRESS for data fetching
-  const currentAddress = activeAddress || DEMO_HOST_ADDRESS;
+  // CRITICAL: Determine the final address for fetching data
+  const finalAddress = activeAddress || DEMO_HOST_ADDRESS;
+  const isAddressReady = !!activeAddress || isDemoMode;
+  
+  // Use a second state to track if we've successfully made the initial fetch attempt
+  const [initialFetchAttempted, setInitialFetchAttempted] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
+    // CONDITION 1: Only proceed if an address is definitively set (connected or mock).
+    if (!isAddressReady) {
+      // Show loading screen until the wallet hook resolves activeAddress
+      setIsLoading(true);
+      return; 
+    }
+    
+    // Skip if already attempted, unless the activeAddress changes (e.g., user connects/disconnects)
+    if (initialFetchAttempted && !activeAddress) {
+        // If we've fetched before, and activeAddress hasn't changed, rely on cached data.
+        return;
+    }
 
+    async function fetchData() {
+      console.log(`[HOST DASHBOARD] Fetching data for address: ${finalAddress}`);
+      setIsLoading(true);
+      
       try {
         
-        // 1. Fetch user profile (Mock client is set up to return a mock user or check in-memory)
-        const { data: profile } = await supabase.from("users").select("*").eq("wallet_address", currentAddress).single()
+        // 1. Fetch user profile (Create if it doesn't exist)
+        const { data: profile } = await supabase.from("users").select("*").eq("wallet_address", finalAddress).single()
 
         if (!profile) {
-          // If the profile fetch fails, try to create it. (Mock client will handle this gracefully)
+          // If the profile fetch fails, try to create it.
           const { data: newProfile } = await supabase
             .from("users")
             .insert([
               {
-                wallet_address: currentAddress,
+                wallet_address: finalAddress,
                 created_at: new Date().toISOString(),
               },
             ])
@@ -154,47 +178,80 @@ export default function HostPage() {
           fetch('/api/welcome-nft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userAddress: currentAddress })
-          })
+            body: JSON.stringify({ userAddress: finalAddress })
+          }).catch(e => console.error("Welcome NFT mock failed:", e));
+
         } else {
           setUserProfile(profile)
         }
 
-        // 2. Fetch events created by this wallet - MOCK must correctly filter the in-memory store
+        // 2. Fetch events created by this wallet
         const { data: userEvents, error: eventsError } = await supabase
           .from("events")
           .select("*")
-          .eq("created_by", currentAddress) // This is the key mock call
+          .eq("created_by", finalAddress)
           .order("event_date", { ascending: false }) 
 
         if (eventsError) {
-             console.error("Mock DB Error fetching events:", eventsError);
+             console.error("DB Error fetching events:", eventsError);
+             toast.error("Failed to fetch events from database.");
         }
         
-        // This is where we ensure data is not null
+        // DEBUGGING: Show the fetch address to the user
+        const addressDisplay = finalAddress.slice(0, 5) + '...' + finalAddress.slice(-5);
+        const eventCount = userEvents?.length || 0;
+        toast.info(`Dashboard loaded for ${addressDisplay}. Found ${eventCount} event(s).`);
+
         setEvents(userEvents || [])
         
       } catch (error) {
         console.error("Error fetching data:", error)
+        toast.error("An error occurred while loading your dashboard.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
+        setInitialFetchAttempted(true);
       }
     }
 
-    // Dependency array for the effect. 
-    // We remove the problematic `events.length` dependency and rely on Next.js client-side 
-    // re-rendering after navigation and state updates.
     fetchData()
-  }, [activeAddress, currentAddress])
+  }, [isAddressReady, activeAddress, isDemoMode]) 
+
+
+  // Display Loading Skeleton until the fetch is attempted
+  if (isLoading || !isAddressReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <LoadingSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // CRITICAL CHECK: Show connection prompt if not connected and not in demo mode
+  if (!activeAddress && finalAddress === DEMO_HOST_ADDRESS && !isDemoMode) {
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 flex items-center justify-center p-8">
+            <Card className="w-full max-w-md mx-4 bg-gray-800/50 border-gray-700">
+                <CardContent className="p-8 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Wallet Not Connected</h2>
+                    <p className="text-gray-400 mb-6">Please connect your Algorand wallet to view and manage your events.</p>
+                    <Button onClick={() => toast.info("Use the 'Connect Wallet' button in the header.")}>
+                        Connect Wallet
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : (
-            // Rest of your existing JSX remains the same
+          {/* Dashboard Content - Renders only if not loading */}
             <div className="space-y-8">
               {/* Host Profile Section */}
               <div className="grid md:grid-cols-[2fr,1fr] gap-6">
@@ -260,7 +317,7 @@ export default function HostPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm text-gray-400">Wallet Address</label>
-                        <p className="font-mono text-sm truncate">{currentAddress}</p>
+                        <p className="font-mono text-sm truncate">{finalAddress}</p>
                       </div>
                       <div>
                         <label className="text-sm text-gray-400">Member Since</label>
@@ -294,14 +351,12 @@ export default function HostPage() {
                 </Tabs>
               </div>
             </div>
-          )}
         </div>
       </div>
     </div>
   )
 }
 
-// Your existing EventsList component remains the same
 function EventsList({ events }: { events: any[] }) {
   if (events.length === 0) {
     return (

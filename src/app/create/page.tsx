@@ -1,4 +1,4 @@
-// File: src/app/create/page.tsx
+// File: src/app/create/page.tsx (REPLACE ENTIRE FILE)
 "use client"
 
 import { useState } from "react"
@@ -17,12 +17,9 @@ import { toast } from "react-toastify"
 import algosdk from "algosdk"
 import { createClient } from "@supabase/supabase-js"
 import { Clock, MapPin, Map } from "lucide-react"
-
-// CONDITIONAL IMPORT FOR MOCKING:
-import { createMockClient } from "@/lib/supabase-mock";
+import { createMockClient } from "@/lib/supabase-mock"; // NEW IMPORT
 
 // --- START: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
-// Check for the known fake URL to determine if we should use the mock client.
 const FAKE_SUPABASE_URL = "http://localhost:54321";
 const isDemoMode = process.env.NEXT_PUBLIC_SUPABASE_URL === FAKE_SUPABASE_URL;
 
@@ -159,6 +156,11 @@ export default function CreateEventPage() {
       // --- END CRITICAL CHECK ---
 
 
+      // --- CRITICAL FIX: Ensure address is consistently uppercase on SAVE ---
+      const creatorAddress = activeAddress.toUpperCase(); 
+      // --- END CRITICAL FIX ---
+
+
       const parsedTicketPrice = Number.parseFloat(formData.ticketPrice)
       const ticketPrice = isNaN(parsedTicketPrice) ? 0 : parsedTicketPrice
 
@@ -225,7 +227,7 @@ export default function CreateEventPage() {
           category: metadata.category,
           requires_approval: metadata.requiresApproval,
           image_url: `ipfs://${ipfsHash}`,
-          created_by: activeAddress,
+          created_by: creatorAddress, // *** USE UPPERCASED ADDRESS HERE ***
         })
         .select()
         .single()

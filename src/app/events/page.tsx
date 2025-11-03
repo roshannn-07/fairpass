@@ -1,6 +1,7 @@
+// File: src/app/events/page.tsx
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; 
 import { createClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -9,8 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
+import { cn, debounce, getOptimizedImageUrl } from "@/lib/utils"; // <-- IMPORT DEBOUNCE & getOptimizedImageUrl
+import Image from "next/image"; // <-- CRITICAL: IMPORT Next.js Image
 
 // Initialize Supabase client
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -39,10 +40,23 @@ const priceRanges = [
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([])
   const [filteredEvents, setFilteredEvents] = useState<any[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("") 
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedPriceRange, setSelectedPriceRange] = useState("all")
   const [isLoading, setIsLoading] = useState(true)
+  
+  // --- O1: Debounce Search Handler ---
+  const debouncedSetSearchQuery = useMemo(() => {
+    return debounce((nextQuery: string) => {
+        setSearchQuery(nextQuery);
+    }, 300);
+  }, []); 
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      debouncedSetSearchQuery(e.target.value);
+  };
+  // ----------------------------------------
+
 
   // Fetch events
   useEffect(() => {
@@ -58,7 +72,7 @@ export default function EventsPage() {
     fetchEvents()
   }, [])
 
-  // Filter events based on search, category, and price range
+  // Filter events based on search, category, and price range (TRIGGERED BY DEBOUNCED searchQuery)
   useEffect(() => {
     console.log("Filtering events based on criteria")
     let filtered = [...events]
@@ -95,7 +109,7 @@ export default function EventsPage() {
   // Clear filters
   const clearFilters = () => {
     console.log("Clearing all filters")
-    setSearchQuery("")
+    setSearchQuery("") 
     setSelectedCategory("all")
     setSelectedPriceRange("all")
   }
@@ -124,11 +138,8 @@ export default function EventsPage() {
                 type="search"
                 placeholder="Search events by name, location, or description..."
                 className="w-full h-14 pl-12 pr-4 rounded-2xl bg-gray-800/50 border-gray-700 backdrop-blur-xl focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                value={searchQuery}
-                onChange={(e) => {
-                  console.log("Search query changed")
-                  setSearchQuery(e.target.value)
-                }}
+                defaultValue={searchQuery}
+                onChange={handleSearchInputChange}
               />
               <Button
                 variant="outline"
@@ -278,11 +289,17 @@ export default function EventsPage() {
                     <CardContent className="p-0">
                       {/* Image with Gradient Overlay */}
                       <div className="aspect-[5/3] relative overflow-hidden">
-                        <img
-                          src={event.image_url.replace("ipfs://", "https://ipfs.io/ipfs/") || "/placeholder.svg"}
+                        
+                        {/* O8: CRITICAL FIX: Replaced <img> with Next.js <Image> component */}
+                        <Image
+                          src={getOptimizedImageUrl(event.image_url)} // Use utility
                           alt={event.event_name || "Event image"}
+                          fill // Use fill for responsive aspect ratio
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-500"
+                          priority={true} // Prioritize above-the-fold images
                         />
+                        
                         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent opacity-80" />
 
                         {/* Price Badge */}
@@ -338,4 +355,3 @@ export default function EventsPage() {
     </div>
   )
 }
-

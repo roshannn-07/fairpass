@@ -1,5 +1,6 @@
-import * as React from "react";
+// File: src/components/ui/table.tsx
 
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<
@@ -7,15 +8,17 @@ const Table = React.forwardRef<
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => {
   console.log("Table component initialized")
+  // Change to explicit return with parentheses for JSX
   return (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+    <div className="relative w-full overflow-auto">
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
+  ); // <-- Explicit semicolon here, inside the function body
+}); // <-- No semicolon here, let's see if this resolves it
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

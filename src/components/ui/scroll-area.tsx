@@ -1,3 +1,4 @@
+// File: src/components/ui/scroll-area.tsx
 "use client"
 
 import * as React from "react";
@@ -22,7 +23,7 @@ const ScrollArea = React.forwardRef<
     <ScrollBar />
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
-))
+)}); // <-- Added semicolon here to ensure proper statement termination
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
 const ScrollBar = React.forwardRef<
@@ -43,8 +44,9 @@ const ScrollBar = React.forwardRef<
     {...props}
   >
     <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
-  </ScrollAreaPrimitive.ScrollAreaScrollbar>
+  </ScrollAreaPrimitive.Scrollbar>
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
 
+// FINAL EXPORT BLOCK (Ensures all required components are available)
 export { ScrollArea, ScrollBar }

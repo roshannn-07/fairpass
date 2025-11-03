@@ -1,3 +1,4 @@
+// File: src/components/ui/header.tsx
 "use client"
 
 import { useState, useEffect } from "react";
@@ -13,6 +14,8 @@ import { toast } from "react-toastify";
 const navigationItems = [
   { name: "Events", href: "/events" },
   { name: "Calendars", href: "/calendars" },
+  // MODIFIED: Added Leaderboard page link
+  { name: "Leaderboard", href: "/leaderboard" },
   { name: "Host", href: "/host" },
 ]
 
