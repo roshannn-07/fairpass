@@ -1,3 +1,4 @@
+// File: src/app/create/page.tsx
 "use client"
 
 import { useState } from "react"
@@ -17,8 +18,25 @@ import algosdk from "algosdk"
 import { createClient } from "@supabase/supabase-js"
 import { Clock, MapPin, Map } from "lucide-react"
 
-// Initialize Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+// CONDITIONAL IMPORT FOR MOCKING:
+import { createMockClient } from "@/lib/supabase-mock";
+
+// --- START: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
+// Check for the known fake URL to determine if we should use the mock client.
+const FAKE_SUPABASE_URL = "http://localhost:54321";
+const isDemoMode = process.env.NEXT_PUBLIC_SUPABASE_URL === FAKE_SUPABASE_URL;
+
+let supabase: any;
+
+if (isDemoMode) {
+    // @ts-ignore - Supabase types are complex, ignore mismatch for mock
+    supabase = createMockClient();
+} else {
+    // Use the real client if keys are likely real
+    supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+}
+// --- END: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
+
 
 interface EventMetadata {
   name: string
@@ -81,7 +99,7 @@ export default function CreateEventPage() {
   const handleImageUpload = async (file: File) => {
     try {
       setIsUploading(true)
-      console.log("Starting image upload to IPFS")
+      // console.log("Starting image upload to IPFS") // REMOVED LOG
 
       // Preview
       const reader = new FileReader()
@@ -101,7 +119,7 @@ export default function CreateEventPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to upload to IPFS")
+        throw new Error(`Failed to upload to IPFS. Status: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json()
@@ -109,14 +127,13 @@ export default function CreateEventPage() {
       toast.success("Image uploaded to IPFS successfully!")
     } catch (error) {
       console.error("Error uploading image:", error)
-      toast.error("Failed to upload image to IPFS")
+      toast.error(`Failed to upload image to IPFS: ${(error as Error).message}`)
     } finally {
       setIsUploading(false)
     }
   }
 
   const createTicketNFTs = async () => {
-    console.log("Starting ticket creation process")
     if (!activeAddress || !algodClient || !transactionSigner) {
       toast.error("Please connect your wallet first")
       return
@@ -135,6 +152,33 @@ export default function CreateEventPage() {
     try {
       setIsCreating(true)
 
+      // --- CRITICAL CHECK: Provide clear message if in mock mode ---
+      if (isDemoMode) {
+          toast.info("Database is in Mock Mode. Event will not be saved permanently.");
+      }
+      // --- END CRITICAL CHECK ---
+
+
+      const parsedTicketPrice = Number.parseFloat(formData.ticketPrice)
+      const ticketPrice = isNaN(parsedTicketPrice) ? 0 : parsedTicketPrice
+
+      // --- Robust Client-Side Validation ---
+      const numTickets = Number.parseInt(formData.maxTickets);
+      if (numTickets <= 0 || isNaN(numTickets)) {
+        toast.error("Maximum tickets must be a positive number.")
+        return
+      }
+      if (!formData.name.trim()) {
+        toast.error("Please enter an Event Name.")
+        return
+      }
+      if (!formData.location.trim()) {
+        toast.error("Please enter an Event Location.")
+        return
+      }
+      // --- END: Robust Client-Side Validation ---
+
+
       // Prepare metadata
       const metadata: EventMetadata = {
         name: formData.name,
@@ -142,27 +186,21 @@ export default function CreateEventPage() {
         location: formData.location,
         date: date.toISOString(),
         image: `ipfs://${ipfsHash}`,
-        maxTickets: Number.parseInt(formData.maxTickets),
-        ticketPrice: Number.parseFloat(formData.ticketPrice),
+        maxTickets: numTickets,
+        ticketPrice: ticketPrice,
         venue: formData.eventMetadata.venue,
         organizer: formData.eventMetadata.organizer,
         category: formData.eventMetadata.category,
         requiresApproval: formData.eventMetadata.requiresApproval,
       }
 
-      // --- START: DEMO TRANSACTION MOCK FOR MINTING (Final Fix) ---
-      console.log("[DEMO MOCK] Bypassing actual bulk minting transaction.")
-
+      // --- DEMO TRANSACTION MOCK FOR MINTING (Same as previous fix) ---
+      
       // Simulate asset IDs being returned
       const assetIds = [];
-      const numTickets = Number.parseInt(formData.maxTickets);
       for (let i = 0; i < numTickets; i++) {
-          // Generate realistic-looking, but fake, asset IDs
           assetIds.push(Math.floor(Math.random() * 1000000) + 1000000); 
       }
-      
-      // Simulate confirmation time
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast.success(`[DEMO] Transaction Simulated. ${assetIds.length} tickets ready for database insertion!`, {
         autoClose: 3000,
@@ -170,14 +208,7 @@ export default function CreateEventPage() {
 
       // --- END: DEMO TRANSACTION MOCK FOR MINTING ---
       
-      // Add this validation before the supabase.from("events").insert call
-      if (metadata.ticketPrice === undefined || isNaN(metadata.ticketPrice)) {
-        toast.error("Please enter a valid ticket price or select Free Event")
-        setIsCreating(false)
-        return
-      }
-
-      // Create event in Supabase
+      // Create event in Supabase (MOCK or REAL)
       const { data: event, error: eventError } = await supabase
         .from("events")
         .insert({
@@ -199,8 +230,10 @@ export default function CreateEventPage() {
         .select()
         .single()
 
-      if (eventError) throw eventError
-        console.log("Asset ID: " , assetIds);
+      if (eventError) {
+        throw new Error(`Supabase DB Error: Failed to insert event. Details: ${eventError.message || "Unknown DB error"}`);
+      }
+      
       // Create tickets in Supabase
       const ticketsData = assetIds.map((assetId, index) => ({
         asset_id: assetId,
@@ -213,12 +246,15 @@ export default function CreateEventPage() {
 
       const { error: ticketsError } = await supabase.from("tickets").insert(ticketsData)
 
-      if (ticketsError) throw ticketsError
+      if (ticketsError) {
+        throw new Error(`Supabase DB Error: Failed to insert tickets. Details: ${ticketsError.message || "Unknown DB error"}`);
+      }
 
       toast.success("Event created and tickets mocked successfully!")
     } catch (error) {
+      const errorMessage = (error as Error).message || "An unknown network/database error occurred."
       console.error("Error creating event and minting tickets:", error)
-      toast.error("Failed to create event and mint tickets")
+      toast.error(`Failed to create event: ${errorMessage}`)
     } finally {
       setIsCreating(false)
     }
@@ -237,7 +273,6 @@ export default function CreateEventPage() {
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
-                    console.log("File selected for upload")
                     const file = e.target.files?.[0]
                     if (file) handleImageUpload(file)
                   }}
@@ -276,7 +311,6 @@ export default function CreateEventPage() {
               className="text-3xl h-16 bg-transparent border-none placeholder:text-gray-500"
               value={formData.name}
               onChange={(e) => {
-                console.log("Event name changed")
                 setFormData({ ...formData, name: e.target.value })
               }}
             />
@@ -313,7 +347,6 @@ export default function CreateEventPage() {
                     className="bg-gray-800/50 flex-1"
                     value={formData.location}
                     onChange={(e) => {
-                      console.log("Event location changed")
                       setFormData({ ...formData, location: e.target.value })
                     }}
                   />
@@ -321,7 +354,6 @@ export default function CreateEventPage() {
                     variant="outline"
                     className="bg-gray-800/50"
                     onClick={() => {
-                      console.log("Geolocation button clicked")
                       if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition((position) => {
                           setFormData({
@@ -340,7 +372,6 @@ export default function CreateEventPage() {
                     variant="outline"
                     className="bg-gray-800/50"
                     onClick={() => {
-                      console.log("Maps button clicked")
                       window.open(
                         `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location)}`,
                         "_blank",
@@ -362,7 +393,6 @@ export default function CreateEventPage() {
                 className="min-h-[100px] bg-gray-800/50"
                 value={formData.description}
                 onChange={(e) => {
-                  console.log("Event description changed")
                   setFormData({ ...formData, description: e.target.value })
                 }}
               />
@@ -375,7 +405,6 @@ export default function CreateEventPage() {
                     className="w-32 bg-gray-800/50"
                     value={formData.maxTickets}
                     onChange={(e) => {
-                      console.log("Max tickets changed")
                       setFormData({ ...formData, maxTickets: e.target.value })
                     }}
                   />
@@ -390,9 +419,10 @@ export default function CreateEventPage() {
                         id="freeTicket"
                         className="rounded border-gray-700 bg-gray-800/50"
                         onChange={(e) => {
-                          console.log("Free ticket checkbox changed")
                           if (e.target.checked) {
                             setFormData({ ...formData, ticketPrice: "0" })
+                          } else if (formData.ticketPrice === "0") {
+                            setFormData({ ...formData, ticketPrice: "" })
                           }
                         }}
                       />
@@ -406,7 +436,6 @@ export default function CreateEventPage() {
                     className="w-32 bg-gray-800/50"
                     value={formData.ticketPrice}
                     onChange={(e) => {
-                      console.log("Ticket price changed")
                       setFormData({ ...formData, ticketPrice: e.target.value })
                     }}
                     disabled={formData.ticketPrice === "0"}
@@ -418,7 +447,6 @@ export default function CreateEventPage() {
                   <Select
                     value={formData.eventMetadata.category}
                     onValueChange={(value) => {
-                      console.log("Event category changed")
                       setFormData({
                         ...formData,
                         eventMetadata: { ...formData.eventMetadata, category: value },
@@ -448,7 +476,6 @@ export default function CreateEventPage() {
           <Button
             className="w-full max-w-md bg-primary hover:bg-primary/90"
             onClick={() => {
-              console.log("Create event button clicked")
               createTicketNFTs()
             }}
             disabled={isCreating || !activeAddress}

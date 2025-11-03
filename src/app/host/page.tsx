@@ -1,3 +1,4 @@
+// File: src/app/host/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -11,9 +12,22 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton" 
+import { createMockClient } from "@/lib/supabase-mock"; // NEW IMPORT
 
-// Initialize Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+// --- START: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
+const FAKE_SUPABASE_URL = "http://localhost:54321";
+const isDemoMode = process.env.NEXT_PUBLIC_SUPABASE_URL === FAKE_SUPABASE_URL;
+
+let supabase: any;
+
+if (isDemoMode) {
+    // @ts-ignore - Supabase types are complex, ignore mismatch for mock
+    supabase = createMockClient();
+} else {
+    // Use the real client if keys are likely real
+    supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+}
+// --- END: CONDITIONAL SUPABASE CLIENT INITIALIZATION ---
 
 function LoadingSkeleton() {
   return (
@@ -105,7 +119,6 @@ const DEMO_HOST_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY
 // Note: This is the Algorand Zero Address, which is valid but should only be used for read-only mocks.
 
 export default function HostPage() {
-  console.log("HostPage component initialized")
   const { activeAddress } = useWallet()
   const [events, setEvents] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -116,17 +129,14 @@ export default function HostPage() {
 
   useEffect(() => {
     async function fetchData() {
-      // COMMENTED OUT: if (!activeAddress) return // THIS IS THE ORIGINAL LINE THAT BLOCKED ACCESS
 
       try {
-        console.log("Fetching host dashboard data for:", currentAddress)
-        console.log("Fetching user profile")
         
-        // Fetch user profile
+        // 1. Fetch user profile (Mock client is set up to return a mock user or check in-memory)
         const { data: profile } = await supabase.from("users").select("*").eq("wallet_address", currentAddress).single()
 
         if (!profile) {
-          // Create user profile if it doesn't exist
+          // If the profile fetch fails, try to create it. (Mock client will handle this gracefully)
           const { data: newProfile } = await supabase
             .from("users")
             .insert([
@@ -150,14 +160,20 @@ export default function HostPage() {
           setUserProfile(profile)
         }
 
-        // Fetch events created by this wallet
-        const { data: userEvents } = await supabase
+        // 2. Fetch events created by this wallet - MOCK must correctly filter the in-memory store
+        const { data: userEvents, error: eventsError } = await supabase
           .from("events")
           .select("*")
-          .eq("created_by", currentAddress)
-          .order("event_date", { ascending: false })
+          .eq("created_by", currentAddress) // This is the key mock call
+          .order("event_date", { ascending: false }) 
 
+        if (eventsError) {
+             console.error("Mock DB Error fetching events:", eventsError);
+        }
+        
+        // This is where we ensure data is not null
         setEvents(userEvents || [])
+        
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -165,11 +181,11 @@ export default function HostPage() {
       }
     }
 
+    // Dependency array for the effect. 
+    // We remove the problematic `events.length` dependency and rely on Next.js client-side 
+    // re-rendering after navigation and state updates.
     fetchData()
   }, [activeAddress, currentAddress])
-  
-  // RENDER MODIFIED: Removed the "Connect Your Wallet" block and now just render the content.
-  // The address used will be the real one if connected, or the Zero Address if not.
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">

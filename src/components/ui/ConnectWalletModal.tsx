@@ -13,7 +13,7 @@ const ConnectWalletModal = ({
   isOpen: boolean
   onClose: () => void
 }) => {
-  const { activeAccount } = useWallet() // Moved useWallet hook to the top level
+  const { activeAccount } = useWallet()
 
   if (!isOpen) return null
 
@@ -23,7 +23,7 @@ const ConnectWalletModal = ({
         await wallet.setActive()
         toast.success("Wallet set as active")
       } else {
-        await wallet.connect()
+        await wallet.connect() 
         toast.success("Wallet connected successfully")
       }
       onClose()
@@ -60,9 +60,9 @@ const ConnectWalletModal = ({
 
         {wallets.map((wallet) => (
           <div
-            onClick={() => handleWalletClick(wallet)}
+            onClick={() => wallet.isActive ? onClose() : handleWalletClick(wallet)}
             key={wallet.id}
-            className={`wallet-option ${wallet.activeAccount ? "connected" : ""}`}
+            className={`wallet-option ${wallet.activeAccount ? "connected" : ""}`} 
           >
             <span>
               {wallet.metadata.name}{" "}
@@ -99,4 +99,3 @@ const ConnectWalletModal = ({
 }
 
 export default ConnectWalletModal
-

@@ -44,8 +44,8 @@ const walletManager = new WalletManager({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    console.log("Providers component executed")
-    console.log("WalletProvider initialized")
+    // console.log("Providers component executed") // REMOVED
+    // console.log("WalletProvider initialized") // REMOVED
     return (
     <WalletProvider manager={walletManager}>
       {children}

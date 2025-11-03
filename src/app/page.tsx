@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Shield, Zap, Clock, Coins } from "lucide-react";
+import Link from "next/link"; // ADDED IMPORT
 
 const algorandBenefits = [
   {
@@ -35,6 +36,7 @@ const featureGroups = [
         "Automated ticket distribution and validation through Algorand smart contracts",
     },
     {
+    // ... (rest of feature groups unchanged)
       title: "Transparent Pricing",
       description:
         "All transactions are recorded on the blockchain for complete transparency",
@@ -61,8 +63,6 @@ const featureGroups = [
 ];
 
 export default function HomePage() {
-    console.log("HomePage component initialized")
-    console.log("Rendering hero section")
     return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
@@ -80,13 +80,16 @@ export default function HomePage() {
               Explore Events
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-purple-600 text-purple-400 hover:bg-purple-600/10"
-            >
-              Create Event
-            </Button>
+            {/* CORRECTED LINK: Use Link and passHref to wrap the Button */}
+            <Link href="/create" passHref legacyBehavior>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-purple-600 text-purple-400 hover:bg-purple-600/10"
+                >
+                  Create Event
+                </Button>
+            </Link>
           </div>
         </div>
       </section>

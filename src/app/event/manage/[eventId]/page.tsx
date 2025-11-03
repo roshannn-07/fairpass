@@ -94,7 +94,6 @@ type Event = {
 }
 
 function sliceIntoChunks(arr: any[], chunkSize: number) {
-  console.log("Slicing array into chunks")
   const res = [];
   for (let i = 0; i < arr.length; i += chunkSize) {
     const chunk = arr.slice(i, i + chunkSize);
@@ -105,7 +104,6 @@ function sliceIntoChunks(arr: any[], chunkSize: number) {
 
 
 export default function EventManagePage({ params }: { params: Promise<{ eventId: string }> }) {
-  console.log("EventManagePage component initialized")
   const resolvedParams = React.use(params)
   const { activeAddress, algodClient, transactionSigner } = useWallet()
 
@@ -129,8 +127,6 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
   useEffect(() => {
     async function fetchData() {
       try {
-        console.log("Fetching event management data for event:", resolvedParams.eventId)
-        console.log("Fetching event details")
         // Fetch event details
         const { data: event, error: eventError } = await supabase
           .from("events")
@@ -225,14 +221,12 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
   // ... rest of the component code remains the same ...
 
   const filteredRequests = requests.filter((request) => {
-    console.log("Filtering request:", request.request_id)
     const matchesSearch = request.wallet_address.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = filterStatus === "all" || request.request_status === filterStatus
     return matchesSearch && matchesStatus
   })
 
   const handleSelectAll = () => {
-    console.log("Handling select all requests")
     if (selectedRequests.length === filteredRequests.length) {
       setSelectedRequests([])
     } else {
@@ -241,7 +235,6 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
   }
 
   const handleSelectRequest = (requestId: number) => {
-    console.log("Selecting request:", requestId)
     if (selectedRequests.includes(requestId)) {
       setSelectedRequests(selectedRequests.filter((id) => id !== requestId))
     } else {
@@ -254,7 +247,6 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
     status: "pending" | "approved" | "rejected",
     notes?: string,
   ) => {
-    console.log("Updating request status:", status)
     try {
       const { error } = await supabase
         .from("requests")
@@ -287,38 +279,72 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
 
   const handleBulkAction = async (action: "approve" | "reject") => {
     console.log("Performing bulk action:", action)
-    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    if (!activeAddress || !algodClient || !transactionSigner) {
+        toast.error("Wallet not connected or missing services.")
+        return
+    }
 
     try {
 
 
       if (action === "approve") {
+        
+        const suggestedParams = await algodClient.getTransactionParams().do();
         const transactions: algosdk.Transaction[] = [];
 
         const selectedRequestsDetails = requests.filter((request) =>
           selectedRequests.includes(request.request_id)
         );
 
-        selectedRequestsDetails.forEach( async (request) => {
-          console.log(
-            "Request ID:",
-            request.request_id,
-            "Asset ID:",
-            request.asset_id,
-            "Wallet Address:",
-            request.wallet_address
-          );
+        // 1. Build all transactions
+        for (const request of selectedRequestsDetails) {
+            
+            // Check for valid assetId before attempting to build
+            if (!request.asset_id || request.asset_id <= 0) {
+                console.error(`Skipping request ${request.request_id}: Invalid Asset ID ${request.asset_id}`);
+                continue; // Skip invalid asset transfers
+            }
+            
+            const xferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                sender: activeAddress,
+                receiver: request.wallet_address,
+                suggestedParams,
+                assetIndex: request.asset_id,
+                amount: 1,
+                note: new TextEncoder().encode(`Ticket Approval for Event ${event?.event_id}`),
+            });
+            transactions.push(xferTxn)
+        }
 
-          
-          const xferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            sender: activeAddress!,
-            receiver: request.wallet_address,
-            suggestedParams,
-            assetIndex: request.asset_id,
-            amount: 1,
-          });
-          transactions.push(xferTxn)
+        if (transactions.length === 0) {
+            toast.info("No valid transfers were built for approval.")
+            return
+        }
 
+        // 2. Sign all transactions at once for Pera/WalletConnect stability
+        toast.info(`Sending ${transactions.length} transfer transactions for wallet approval...`)
+        const signedTxns = await transactionSigner(
+          transactions,
+          transactions.map((_, i) => i), // Sign all transactions
+        )
+
+        // 3. Send transactions in a single batch
+        toast.info("Sending signed transactions to Algorand network...")
+        
+        // Send the entire batch at once
+        const txid = await algodClient.sendRawTransaction(signedTxns).do();
+        const result = await algosdk.waitForConfirmation(algodClient, txid.txId, 4);
+
+        if (result['confirmed-round']) {
+             toast.success(`All ${transactions.length} transfers confirmed in round ${result['confirmed-round']}!`);
+        } else {
+             // If confirmation fails but doesn't throw a standard error, throw a custom one
+             throw new Error("Transaction was sent but not confirmed by the network.");
+        }
+        
+        // 4. Send confirmation emails (parallelized for speed)
+        for (const request of selectedRequestsDetails) {
           const { data: userData } = await supabase
             .from("users")
             .select("email")
@@ -327,20 +353,16 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
 
           
           if (!userData?.email) {
-            console.log(`No email found for user_id ${request.user_id}`)
-            return
+            continue
           }
 
-
-          // Replace the existing Resend API calls with:
           try {
-            const response = await fetch('/api/resend', {
+            // Use the existing /api/resend route for email dispatch
+            await fetch('/api/resend', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                email: userData?.email,
+                email: userData.email,
                 audienceId: '57a5c553-2ff2-48a1-b9f5-dff4b5c04da9',
                 event,
                 ticketDetails: {
@@ -350,66 +372,13 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
                 }
               }),
             })
-
-            if (!response.ok) {
-              throw new Error('Failed to send confirmation email')
-            }
-
-            console.log(`Confirmation email sent to ${userData?.email}`)
           } catch (emailError) {
             console.error(`Error sending confirmation email to ${userData?.email}:`, emailError)
-            // Continue with other emails even if one fails
           }
-
-
-
-        });
-
-
-        console.log("transactions: ", transactions);
-
-        const signedTxns = await transactionSigner(
-          transactions,
-          transactions.map((_, i) => i),
-        )
-        console.log("signedTxns: ", signedTxns);
-
-
-        let signedAssetTransactions;
-
-        signedAssetTransactions = sliceIntoChunks(signedTxns, 1)
-        for (let i = 0; i < signedAssetTransactions.length; i++) {
-          try {
-            const { txid } = await algodClient.sendRawTransaction(signedAssetTransactions[i]).do();
-            const result = await algosdk.waitForConfirmation(algodClient, txid, 4);
-            console.log(result)
-
-            if (result.hasOwnProperty("txn")) {
-              // The confirmed result returns an assetIndex for the first txn.
-              console.log(result["txn"]["txn"].txID())
-             
-            } else if (result.innerTxns) {
-              
-            } else {
-              toast.error("Could not retrieve asset IDs from confirmation");
-            }
-        
-            if (i % 5 === 0) {
-              toast.success(`Transaction ${i + 1} of ${signedAssetTransactions.length} confirmed!`, {
-                autoClose: 1000,
-              });
-            }
-          } catch (err) {
-            console.error(err);
-            toast.error(`Transaction ${i + 1} of ${signedAssetTransactions.length} failed!`, {
-              autoClose: 1000,
-            });
-          }
-        
-          await new Promise((resolve) => setTimeout(resolve, 20));
         }
       }
       
+      // Update DB status for approved/rejected requests
       const { error } = await supabase
         .from("requests")
         .update({
@@ -435,13 +404,14 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
 
       // Clear selection
       setSelectedRequests([])
+      toast.success("Bulk action completed and database updated.")
     } catch (error) {
       console.error("Error performing bulk action:", error)
+      toast.error(`Bulk action failed: ${(error as Error).message || "Transaction error."}`)
     }
   }
 
   const renderRequestsTable = () => {
-    console.log("Rendering requests table")
     if (isLoading) {
       return (
         <div className="text-center py-12">
@@ -578,7 +548,6 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
     )
   }
 
-  console.log("Rendering event manage page")
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
       {/* Header */}
@@ -969,8 +938,8 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
                       <span className="text-green-500">Open</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Visibility</span>
-                      <span className="text-green-500">Public</span>
+                      <span className="text-gray-400">Visibility</span
+                      ><span className="text-green-500">Public</span>
                     </div>
                   </div>
                 </CardContent>
@@ -1047,4 +1016,3 @@ export default function EventManagePage({ params }: { params: Promise<{ eventId:
     </div>
   )
 }
-
