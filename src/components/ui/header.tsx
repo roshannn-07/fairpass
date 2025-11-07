@@ -14,8 +14,8 @@ import { toast } from "react-toastify";
 const navigationItems = [
   { name: "Events", href: "/events" },
   { name: "Calendars", href: "/calendars" },
-  // MODIFIED: Added Leaderboard page link
   { name: "Leaderboard", href: "/leaderboard" },
+  { name: "Dashboard", href: "/dashboard" },
   { name: "Host", href: "/host" },
 ]
 
