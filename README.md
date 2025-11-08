@@ -4,7 +4,8 @@
 ![Algorand Badge](https://img.shields.io/badge/Built%20on-Algorand-000?logo=algorand&logoColor=white)
 ![Framework](https://img.shields.io/badge/Framework-Next.js-blue)
 ![Language](https://img.shields.io/badge/Language-TypeScript-orange)
-![Status](https://img.shields.io/badge/Status-Demo%20Ready-success)
+![Status](https://img.shields.io/badge/Status-Demo%20Ready%20with%20Functional%20Architecture-success)
+
 
 
 ---
@@ -44,14 +45,14 @@ FairPass leverages the **Algorand blockchain** to:
 
 ## 🧱 Architecture Overview
 
-FairPass is structured as a **five-step flow** connecting users, blockchain logic, and metadata layers:
-1. User connects wallet  
-2. Event organizer creates event (simulated ASA minting)  
-3. Metadata uploaded to IPFS (mocked CID)  
-4. Ticket QR generated from metadata  
-5. Ticket verified via wallet address on TestNet  
+FairPass consists of three primary layers — **Frontend**, **Application Logic**, and **Blockchain & Storage**.
 
----
+![FairPass Architecture](docs/fairpass_architecture.jpg)
+
+> *Users connect wallets, create events, mint NFT tickets, attach metadata via IPFS, and verify ownership through the Algorand system.*
+>
+> *Blockchain and storage operations are implemented using structured functional mocks for secure, predictable demo performance — maintaining real architecture flow without requiring live keys or network funds.*
+
 
 ## ⚙️ Tech Stack
 
@@ -88,6 +89,43 @@ FairPass is structured as a **five-step flow** connecting users, blockchain logi
 ### 📲 5. QR Ticket Verification
 - Generates and validates tickets using wallet address mapping  
 
+## 🧩 Implementation Breakdown
+
+### ✅ Real / Implemented Components & Logic
+These modules are **fully implemented** using Next.js, TypeScript, and the specified libraries.
+
+| Component / File | Status & Details |
+|------------------|------------------|
+| **Frontend/UI** | Built with Next.js, Tailwind CSS, and shadcn/ui (functional React/Radix components). |
+| `src/app/page.tsx` | Fully implemented home page with marketing sections. |
+| `src/app/layout.tsx` | Sets up the root layout, global providers, and fonts. |
+| `src/app/providers.tsx` | Implements dynamic wallet import via `next/dynamic`. |
+| `src/app/wallet-loader.tsx` | Real integration of `@txnlab/use-wallet-react` with Defly, Pera, Lute, and a Demo Wallet. |
+| `src/app/host/page.tsx` | Logic for activeAddress checks, user creation, and event listing using mock data. |
+| `src/app/create/page.tsx` | Full event creation form with validation and client-side logic. |
+| `src/app/api/resend/route.ts` | Real email API using `resend` SDK and embedded QR generation. |
+| `src/lib/utils.ts` | Fully functional helper utilities (cn, debounce, formatDate, etc.). |
+| `src/lib/email-templates.ts` | Generates complete HTML email templates. |
+
+---
+
+### 🔴 Mocked / Simulated Components
+Used to safely represent blockchain, IPFS, and database operations **without exposing keys or using real funds**, while keeping the architecture intact.
+
+| Component / File | Mocking Detail |
+|------------------|----------------|
+| **Blockchain Transactions** | ASA minting, transfers, and approvals simulated with mock Asset IDs. |
+| `src/lib/algorand-utils.ts` | `checkAssetHolding` and NFT minting functions return predefined or random mock IDs. |
+| `src/lib/certificate-minting.ts` | Skips live blockchain calls, returns mock Asset ID. |
+| `src/app/api/upload-to-ipfs/route.ts` | Generates static demo IPFS hash (`QmVitaDemoHash…`) for metadata. |
+| **Database (Supabase)** | Uses mock Supabase client for in-memory operations (non-persistent). |
+| `src/app/dashboard/page.tsx` | Displays mock ticket counts. |
+| `src/app/mytickets/page.tsx` | Uses hardcoded mock ticket data (Asset ID 12345). |
+| `src/app/ticket/view/[id]/page.tsx` | Simulates ticket metadata fetch and QR payload. |
+| `src/app/api/welcome-nft/route.ts` | Updates a mock `welcome_nft_id` instead of minting. |
+
+> 🧠 These mocks maintain accurate blockchain architecture while ensuring safe, consistent demo behavior for the hackathon.
+
 ---
 
 ## 🧩 Module Integration Flow
@@ -110,6 +148,14 @@ FairPass is structured as a **five-step flow** connecting users, blockchain logi
 | **ARC-20 (Planned)** | Fungible passes or loyalty tiers |
 | **ARC-0010 / 0011** | Wallet connectivity & transaction signing |
 | **ABI** | Contract interface compliance (future) |
+
+## 🧭 Judging Pillar Mapping
+
+| Pillar | Implementation |
+|--------|----------------|
+| **Utility & Use Case** | Provides verifiable NFT ticketing for fraud prevention using a mock-enabled blockchain flow. |
+| **Scalability & Versatility** | Modular design supports events, memberships, loyalty passes, and university access systems. |
+| **Code Quality & Standards** | ARC-compliant TypeScript architecture with clearly defined real and simulated components. |
 
 ### 🧩 Integration References
 | Tool | Usage |
@@ -151,6 +197,7 @@ Then open the app in your browser →
 | IPFS Upload       | Mocked CID simulation       | ✅      |
 | QR Verification   | Live rendering via `qrcode` | ✅      |
 | Resale Lock       | Smart contract logic (mock) | ✅      |
+> ⚙️ *Note:* Certain Algorand and IPFS operations are functionally mocked to ensure a stable, secure demo without private keys or paid API dependencies — preserving full architectural accuracy.
 
 ---
 
@@ -204,5 +251,4 @@ Potential future use cases include:
 **Roshan Murthy**  
 B.Tech CSE | Blockchain & DApp Developer  
 💻 [GitHub Profile](https://github.com/roshannn-07)
-
 
