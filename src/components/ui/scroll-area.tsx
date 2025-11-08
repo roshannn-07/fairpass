@@ -1,52 +1,32 @@
-// File: src/components/ui/scroll-area.tsx
+// File: src/components/ui/scroll-area.tsx (TEMPORARY WORKAROUND)
 "use client"
 
 import * as React from "react";
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
-
 import { cn } from "@/lib/utils";
 
+// MOCK ScrollBar for temporary fix
+const ScrollBar = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("h-1 w-full bg-gray-700/50", className)} {...props} />
+  )
+)
+ScrollBar.displayName = "ScrollBar";
+
+// MOCK ScrollArea for temporary fix - renders as a simple div
 const ScrollArea = React.forwardRef<
-  React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => {
-  console.log("ScrollArea component initialized")
-  return (
-  <ScrollAreaPrimitive.Root
-    ref={ref}
-    className={cn("relative overflow-hidden", className)}
+  HTMLDivElement, 
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <div 
+    ref={ref} 
+    className={cn("relative overflow-y-auto rounded-md border border-gray-700", className)} 
+    style={{ maxHeight: '400px' }}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
-      {children}
-    </ScrollAreaPrimitive.Viewport>
-    <ScrollBar />
-    <ScrollAreaPrimitive.Corner />
-  </ScrollAreaPrimitive.Root>
-)}); // <-- Added semicolon here to ensure proper statement termination
-ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
+    {children}
+  </div>
+));
+ScrollArea.displayName = "ScrollArea";
 
-const ScrollBar = React.forwardRef<
-  React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
->(({ className, orientation = "vertical", ...props }, ref) => (
-  <ScrollAreaPrimitive.ScrollAreaScrollbar
-    ref={ref}
-    orientation={orientation}
-    className={cn(
-      "flex touch-none select-none transition-colors",
-      orientation === "vertical" &&
-        "h-full w-2.5 border-l border-l-transparent p-[1px]",
-      orientation === "horizontal" &&
-        "h-2.5 flex-col border-t border-t-transparent p-[1px]",
-      className
-    )}
-    {...props}
-  >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
-  </ScrollAreaPrimitive.Scrollbar>
-))
-ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
-
-// FINAL EXPORT BLOCK (Ensures all required components are available)
+// EXPORT
 export { ScrollArea, ScrollBar }

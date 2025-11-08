@@ -1,4 +1,4 @@
-// File: src/app/host/page.tsx
+// File: src/app/host/page.tsx (UPDATED with profile link fix)
 "use client"
 
 import { useEffect, useState } from "react"
@@ -33,7 +33,7 @@ if (isDemoMode) {
 // --- DEMO MOCK ADDRESS: Use this if no wallet is connected to prevent locking the page ---
 const DEMO_HOST_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"; 
 
-// --- FIX: LoadingSkeleton DEFINITION MOVED HERE (before HostPage) ---
+// --- LoadingSkeleton DEFINITION ---
 function LoadingSkeleton() {
   return (
     <div className="space-y-8">
@@ -310,9 +310,13 @@ export default function HostPage() {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-semibold">Profile Details</h2>
-                      <Button variant="ghost" size="icon">
-                        <Settings className="w-4 h-4" />
+                      {/* FIXED: Added Link component to make the Settings button functional */}
+                      <Button variant="ghost" size="icon" asChild>
+                         <Link href="/profile"> 
+                            <Settings className="w-4 h-4" />
+                         </Link>
                       </Button>
+                      {/* END FIXED */}
                     </div>
                     <div className="space-y-4">
                       <div>
@@ -418,6 +422,7 @@ function EventsList({ events }: { events: any[] }) {
 
               <div className="p-6 md:p-4 flex items-center">
                 <Button asChild variant="outline">
+                  {/* CORRECT: This link is correct to navigate to the manage page */}
                   <Link href={`/event/manage/${event.event_id}`}>
                     Manage Event
                     <Settings className="w-4 h-4 ml-2" />

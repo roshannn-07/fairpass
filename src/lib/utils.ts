@@ -83,6 +83,26 @@ export function deepClone(obj: any): any {
   }
 }
 
+// --- NEW: CSV Download Utility for Guest Data ---
+export function downloadCsv(data: any[], filename: string, columns: string[]) {
+    if (!data || data.length === 0) {
+        console.error("No data to download.");
+        return;
+    }
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+        + columns.join(",") + "\n" 
+        + data.map(row => columns.map(col => `"${row[col]}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 // --- O9: Image Optimization Utility ---
 export function getOptimizedImageUrl(ipfsUrl: string): string {
     if (!ipfsUrl) return "/placeholder.svg";
