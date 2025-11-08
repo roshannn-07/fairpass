@@ -1,34 +1,208 @@
-# FairPass NFT Ticketing
+# 🎟️ FairPass – NFT-Based Event Ticketing on Algorand  
+> Transparent • Authentic • Fraud-Free Event Access
 
-This is the code repository for **FairPass**, an NFT Ticketing dApp built on Next.js, leveraging Algorand for asset management.
+![Algorand Badge](https://img.shields.io/badge/Built%20on-Algorand-000?logo=algorand&logoColor=white)
+![Framework](https://img.shields.io/badge/Framework-Next.js-blue)
+![Language](https://img.shields.io/badge/Language-TypeScript-orange)
+![Status](https://img.shields.io/badge/Status-Demo%20Ready-success)
 
-## Project Goal
 
-The primary objective of this project was to successfully implement a robust NFT Ticketing application for a hackathon demo, integrating key **Super Features** to showcase advanced Web3 functionality.
+---
 
-## 🚀 Super Features Implemented
+> 🧩 Built for **AlgoBharat HackSeries-2**, adhering to the *Three Judging Pillars* —  
+> **Utility**, **Scalability**, and **Code Quality**.
 
-FairPass includes the following unique features, fully implemented for demonstration:
+---
 
-| ID | Feature | Description | Status |
-| :--- | :--- | :--- | :--- |
-| **F1** | **Compliant Resale** (Anti-Scalping) | Logic to set the NFT's manager, freeze, and clawback roles to the Algorand Zero-Address if resale is disabled, effectively locking the asset to prevent scalping. | ✅ Complete |
-| **F2** | **Token-Gated Access** | Checks the user's asset holding (`checkAssetHolding`) of a specified token (ASA) and conditionally enables/disables the ticket purchase option. | ✅ Complete |
-| **F3** | **Proof-of-Attendance (PoAP)** | Logic to call `mintAndSendCertificateNFT` to simulate the creation and transfer of a PoAP NFT to attendees upon event completion. | ✅ Complete |
-| **F4** | **Loyalty Badge System** | Implemented logic and UI on the event management page to award a custom Loyalty Badge NFT to attendees. | ✅ Complete |
+## 🌐 Overview
 
-## 🛠 Project Status & Setup
+**FairPass** revolutionizes event ticketing by transforming tickets into **traceable NFT assets (ASAs)** on the **Algorand blockchain**.  
+It prevents scalping and fraud by making every ticket verifiable, immutable, and optionally non-transferable through on-chain role controls.
 
-The project is currently in a **DEMO-READY** state, with strategic mocks implemented to ensure a smooth runtime demonstration without requiring live blockchain transactions.
+---
 
-| Component | Status | Notes |
-| :--- | :--- | :--- |
-| **Environment** | ✅ READY | `npm run dev` starts successfully. All compilation errors have been fixed. |
-| **Demo Login** | ✅ READY | A confirmed **"Demo Wallet (TestNet)"** is available in the providers for easy login. |
-| **Minting/Event Creation** | ✅ Mocked | The complex Algorand transaction signing loop has been replaced with a **Mock Transaction Loop** to simulate success and allow event creation to proceed to the database. |
-| **Image Upload** | ✅ Mocked | A **Demo Bypass Mock** is in place for the IPFS upload API to simulate a successful hash return, bypassing the Pinata authentication error. |
-| **Project Identity** | ✅ Renamed | All instances of the previous project name ("Julo") have been updated to **FairPass**. |
+## 🧠 Problem Statement
 
-## Next Steps
+Event ticketing systems are plagued by:
+- 🎫 Fake or duplicated tickets  
+- 💰 Unauthorized resales (scalping)  
+- ❌ Lack of transparent ownership validation  
 
-The project is complete for the hackathon submission. The final steps involved a full runtime verification of the implemented features and a successful demonstration.
+FairPass eliminates these issues by **tokenizing tickets** as Algorand **ASAs** — giving both event organizers and attendees complete trust.
+
+---
+
+## 💡 Solution
+
+FairPass leverages the **Algorand blockchain** to:
+- ✅ Represent each event ticket as a unique **ASA (NFT)**  
+- ✅ Enforce **resale rules** by assigning Zero-Address to `manager`, `freeze`, and `clawback` roles  
+- ✅ Allow event creators to **mint, manage, and verify** tickets with transparent ownership records  
+- ✅ Demonstrate a **mocked on-chain flow** to ensure seamless hackathon demo runtime
+
+---
+
+## 🧱 Architecture Overview
+
+FairPass is structured as a **five-step flow** connecting users, blockchain logic, and metadata layers:
+1. User connects wallet  
+2. Event organizer creates event (simulated ASA minting)  
+3. Metadata uploaded to IPFS (mocked CID)  
+4. Ticket QR generated from metadata  
+5. Ticket verified via wallet address on TestNet  
+
+---
+
+## ⚙️ Tech Stack
+
+| Layer | Tools/Frameworks |
+|-------|------------------|
+| **Frontend** | Next.js (React), Tailwind CSS |
+| **Blockchain** | Algorand, `algosdk`, `@txnlab/use-wallet-react` |
+| **Database** | Supabase *(mocked for demo)* |
+| **Utilities** | `resend`, `axios`, `qrcode`, `date-fns` |
+| **UI Components** | `shadcn/ui`, `radix-ui` |
+| **Language** | TypeScript, JavaScript |
+
+---
+
+## 🧩 Core Modules
+
+### 🎟️ 1. Event Creation
+- Simulates ASA minting for NFT-based tickets  
+- Defines ticket metadata (name, seat, price)  
+- Implemented in `src/app/create/page.tsx`  
+
+### 🪪 2. IPFS Upload
+- Mock route `/api/upload-to-ipfs` simulates pinning JSON metadata  
+- Returns a demo **CID hash** for seamless runtime  
+
+### 🔐 3. Wallet Integration
+- Uses `@txnlab/use-wallet-react` to connect to **Algorand TestNet**  
+- Demo Wallet preloaded via `wallet-loader.tsx`  
+
+### 🧠 4. Smart Contract (Mocked)
+- Simulates `manager/freeze/clawback` role control  
+- Locks resale if disabled (Zero Address applied)  
+
+### 📲 5. QR Ticket Verification
+- Generates and validates tickets using wallet address mapping  
+
+---
+
+## 🧩 Module Integration Flow
+
+| Module | Input | Output | Description |
+|--------|--------|---------|-------------|
+| `createEvent()` | Event details | ASA metadata | Simulates NFT minting |
+| `uploadToIPFS()` | Metadata JSON | Mock CID | Stores metadata |
+| `connectWallet()` | — | Wallet address | Establishes connection |
+| `generateQR()` | ASA data | QR Code | Displays event access QR |
+| `verifyTicket()` | Wallet Addr, ASA | Boolean | Validates ticket ownership |
+
+---
+
+## 📘 ARC Standards & Ecosystem Alignment
+
+| ARC | Purpose |
+|-----|----------|
+| **ARC-3** | NFT metadata for ticket creation |
+| **ARC-20 (Planned)** | Fungible passes or loyalty tiers |
+| **ARC-0010 / 0011** | Wallet connectivity & transaction signing |
+| **ABI** | Contract interface compliance (future) |
+
+### 🧩 Integration References
+| Tool | Usage |
+|------|-------|
+| [AlgoKit CLI](https://developer.algorand.org/docs/get-started/algokit/) | Smart contract scaffolding |
+| [Algorand SDK JS](https://developer.algorand.org/docs/sdks/javascript/) | Blockchain logic |
+| [ARC Standards](https://arc.algorand.foundation/) | Token & NFT structure compliance |
+| [AlgoExplorer TestNet](https://testnet.algoexplorer.io/) | Demo wallet & asset verification |
+
+---
+
+## 🔧 Local Setup & Installation
+
+### 1️⃣ Clone Repository
+```bash
+git clone https://github.com/roshannn-07/fairpass
+cd fairpass
+```
+
+### 2️⃣ Install Dependencies
+```bash
+npm install
+```
+
+### 3️⃣ Run the App
+```bash
+npm run dev
+```
+
+Then open the app in your browser →
+👉 http://localhost:3000
+
+
+### 🧩 Demo Highlights
+| Feature           | Description                 | Status |
+| ----------------- | --------------------------- | ------ |
+| Wallet Connection | Functional via TestNet      | ✅      |
+| Ticket Minting    | Mocked ASA logic            | ✅      |
+| IPFS Upload       | Mocked CID simulation       | ✅      |
+| QR Verification   | Live rendering via `qrcode` | ✅      |
+| Resale Lock       | Smart contract logic (mock) | ✅      |
+
+---
+
+### 🧭 Future Roadmap
+
+- 🔗 Replace mocks with live Algorand TestNet transactions
+
+- 🧱 Integrate with AlgoKit for contract deployment
+
+- 📊 Add analytics dashboard for event organizers
+
+- 🪶 Introduce fractional ownership for collaborative events  
+
+- 🧾 Integrate PoAP (Proof of Attendance Protocol) support
+  
+### 🤖 AI Collaboration Statement
+
+🧠 “AI was used as a co-developer for scaffolding and documentation,
+while all blockchain and logic layers were fully human-verified.”
+
+This ensures compliance with AlgoBharat’s AI usage rule — AI as assistant, not architect.
+
+### 🧩 Scalability Vision
+
+FairPass is built as a modular access token engine, not just a ticketing system.
+Potential future use cases include:
+
+- 🎓 University passes and digital certificates
+
+- 🏟️ Sports and season memberships
+
+- 🎬 Concerts, conventions, and PoAPs
+
+- 💼 Private club or subscription access NFTs
+
+
+### 📎 Resources
+📘 Below are the key resources and documentation references used for FairPass development:
+
+- 🌐 [Algorand Developer Portal](https://developer.algorand.org/)
+
+- 📘 [ARC Standards Library](https://arc.algorand.foundation/)
+
+- ⚙️ [AlgoKit CLI Docs](https://developer.algorand.org/docs/get-started/algokit/)
+
+- 🔗 [FairPass GitHub Repository](https://github.com/roshannn-07/fairpass)
+
+
+### 👨‍💻 Maintainer
+
+**Roshan Murthy**  
+B.Tech CSE | Blockchain & DApp Developer  
+💻 [GitHub Profile](https://github.com/roshannn-07)
+
+
