@@ -4,7 +4,7 @@
 ![Algorand Badge](https://img.shields.io/badge/Built%20on-Algorand-000?logo=algorand&logoColor=white)
 ![Framework](https://img.shields.io/badge/Framework-Next.js-blue)
 ![Language](https://img.shields.io/badge/Language-TypeScript-orange)
-![Status](https://img.shields.io/badge/Status-Demo%20Ready%20with%20Functional%20Architecture-success)
+
 
 
 
@@ -25,8 +25,11 @@ It prevents scalping and fraud by making every ticket verifiable, immutable, and
 ## 🧠 Problem Statement
 
 Event ticketing systems are plagued by:
+
 - 🎫 Fake or duplicated tickets  
+
 - 💰 Unauthorized resales (scalping)  
+
 - ❌ Lack of transparent ownership validation  
 
 FairPass eliminates these issues by **tokenizing tickets** as Algorand **ASAs** — giving both event organizers and attendees complete trust.
@@ -36,10 +39,16 @@ FairPass eliminates these issues by **tokenizing tickets** as Algorand **ASAs** 
 ## 💡 Solution
 
 FairPass leverages the **Algorand blockchain** to:
-- ✅ Represent each event ticket as a unique **ASA (NFT)**  
-- ✅ Enforce **resale rules** by assigning Zero-Address to `manager`, `freeze`, and `clawback` roles  
-- ✅ Allow event creators to **mint, manage, and verify** tickets with transparent ownership records  
-- ✅ Demonstrate a **mocked on-chain flow** to ensure seamless hackathon demo runtime
+
+- ✅ Unique event tickets as ASA NFTs
+
+- ✅ Anti-scalping controls via manager/freeze/clawback role locking
+
+- ✅ Ownership verification via wallet and smart contract logic
+
+- ✅ Real TestNet ASAs minted using Python SDK
+
+- ⚙️ Mocked components for IPFS & DB to ensure smooth, key-safe demo runtime
 
 ---
 
@@ -59,35 +68,97 @@ FairPass consists of three primary layers — **Frontend**, **Application Logic*
 | Layer | Tools/Frameworks |
 |-------|------------------|
 | **Frontend** | Next.js (React), Tailwind CSS |
-| **Blockchain** | Algorand, `algosdk`, `@txnlab/use-wallet-react` |
+| **Blockchain** | Algorand SDK, PyTeal, TEAL, Python SDK |
 | **Database** | Supabase *(mocked for demo)* |
 | **Utilities** | `resend`, `axios`, `qrcode`, `date-fns` |
 | **UI Components** | `shadcn/ui`, `radix-ui` |
-| **Language** | TypeScript, JavaScript |
+| **Language** | TypeScript, JavaScript, Python |
 
 ---
 
 ## 🧩 Core Modules
 
 ### 🎟️ 1. Event Creation
+
 - Simulates ASA minting for NFT-based tickets  
+
 - Defines ticket metadata (name, seat, price)  
+
 - Implemented in `src/app/create/page.tsx`  
 
 ### 🪪 2. IPFS Upload
+
 - Mock route `/api/upload-to-ipfs` simulates pinning JSON metadata  
+
 - Returns a demo **CID hash** for seamless runtime  
 
 ### 🔐 3. Wallet Integration
+
 - Uses `@txnlab/use-wallet-react` to connect to **Algorand TestNet**  
+
 - Demo Wallet preloaded via `wallet-loader.tsx`  
 
-### 🧠 4. Smart Contract (Mocked)
-- Simulates `manager/freeze/clawback` role control  
-- Locks resale if disabled (Zero Address applied)  
+### 🧠 4. Smart Contract
+
+- Implements transfer/ownership rules
+
+- Role locking mechanism
+
+- PyTeal source included in /contracts/pyteal
 
 ### 📲 5. QR Ticket Verification
-- Generates and validates tickets using wallet address mapping  
+
+- Generates and validates tickets using wallet address mapping
+
+---
+
+## 🔗 Real Algorand TestNet Assets (Minted)
+FairPass includes live Algorand TestNet assets:
+
+🎟️ ARC-3 Ticket NFT
+
+Asset ID: 749632100
+🔗 https://lora.algokit.io/testnet/asset/749632100
+
+🎖 ARC-20 Loyalty Token
+
+Asset ID: 749632546
+🔗 https://lora.algokit.io/testnet/asset/749632546
+
+>These are visible in Pera Wallet and are used during demo verification.
+
+Some explorers may show “No references found” for new TestNet assets due to indexing delay.
+The ASAs are successfully minted and visible in Pera TestNet wallet.
+
+---
+
+## 📁 Smart Contracts (PyTeal + TEAL)
+
+Located in `contracts/pyteal/:`
+
+- `ticket_checkin.py` – Validates entry + ownership
+  
+- `transfer_restriction.py` – Restricts unauthorized transfers
+  
+- Generated `.teal` files
+  
+- Additional contract documentation in contracts/pyteal/README.md
+  
+Deployment paused due to TestNet TEAL compiler downtime, but code is complete.
+
+## 🔧 Python Minting Scripts (Real TestNet Integration)
+
+Located in /scripts/:
+
+- `mint_arc3.py` – ARC-3 NFT mint
+
+- `mint_arc20.py` – Loyalty token mint
+
+- `utils.py` – Algod client setup
+
+- `fund_account.py` – Faucet helper
+
+These scripts minted the two live assets above.
 
 ## 🧩 Implementation Breakdown
 
@@ -106,6 +177,8 @@ These modules are **fully implemented** using Next.js, TypeScript, and the speci
 | `src/app/api/resend/route.ts` | Real email API using `resend` SDK and embedded QR generation. |
 | `src/lib/utils.ts` | Fully functional helper utilities (cn, debounce, formatDate, etc.). |
 | `src/lib/email-templates.ts` | Generates complete HTML email templates. |
+| Python Scripts (REAL TestNet) | `mint_arc3.py`, `mint_arc20.py`, `utils.py` — minted real TestNet assets. |
+| Smart Contracts (PyTeal + TEAL) | `ticket_checkin.py`, `transfer_restriction.py` — fully implemented smart contracts. |
 
 ---
 
@@ -248,7 +321,8 @@ Potential future use cases include:
 
 ### 👨‍💻 Maintainer
 
-**Roshan Murthy**  
+**Murthy Roshan**  
 B.Tech CSE | Blockchain & DApp Developer  
 💻 [GitHub Profile](https://github.com/roshannn-07)
+
 

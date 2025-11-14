@@ -1,0 +1,24 @@
+#pragma version 8
+txn ApplicationID
+int 0
+==
+bnz main_l4
+txn OnCompletion
+int NoOp
+==
+bnz main_l3
+err
+main_l3:
+txn Sender
+byte "allowed_sender"
+app_global_get
+==
+assert
+int 1
+return
+main_l4:
+byte "allowed_sender"
+txn Sender
+app_global_put
+int 1
+return

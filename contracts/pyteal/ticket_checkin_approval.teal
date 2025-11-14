@@ -1,0 +1,27 @@
+#pragma version 8
+txn ApplicationID
+int 0
+==
+bnz main_l4
+txn OnCompletion
+int NoOp
+==
+bnz main_l3
+err
+main_l3:
+byte "checked_in"
+app_global_get
+int 0
+==
+assert
+byte "checked_in"
+int 1
+app_global_put
+int 1
+return
+main_l4:
+byte "checked_in"
+int 0
+app_global_put
+int 1
+return
